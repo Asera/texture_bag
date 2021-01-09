@@ -1,6 +1,6 @@
 [package]
 name = "texture_bag"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["artistarc <asera2@yandex.ru>"]
 edition = "2018"
 description = "Simple storage and loader for glium textures"

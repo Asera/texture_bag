@@ -4,6 +4,7 @@ version = "0.0.1"
 authors = ["artistarc <asera2@yandex.ru>"]
 edition = "2018"
 description = "Simple storage and loader for glium textures"
+readme = "README.md"
 repository = "https://github.com/Asera/texture_bag"
 license = "MIT"
 keywords = ["glium", "graphics", "gamedev", "textures"]

@@ -1,11 +1,11 @@
 use image::{DynamicImage, GenericImageView};
 use glium::texture::RawImage2d;
-use glium::Display;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use serde_json::Value;
 use Value::Object;
+use glium::backend::Facade;
 
 struct Texture {
     pub image: DynamicImage,
@@ -30,10 +30,6 @@ const DEFAULT_CONFIG_PATH: &str = "texture_config.json";
 /// Note: by default, all config keys are String types.
 /// Todo: remake it on more generic usage with any displayable type, not only string.
 pub struct TextureBag {
-    /// Path to JSON file with textures. This file will be read on both eager and lazy init.
-    /// Default path is texture_config.json file in project root. You can override it on init.
-    config_path: String,
-
     /// Data read by config. For now Hashmap of texture ID -> path to texture.
     /// It might change until first stable version, but interfaces won't be affected.
     config_data: HashMap<String, String>,
@@ -47,7 +43,9 @@ impl TextureBag {
     /// # Panics
     ///
     /// Method will panic if config file is missing.
-    pub fn init_eager(display: &Display, config_path: Option<String>) -> TextureBag {
+    pub fn init_eager<F>(facade: &F, config_path: Option<String>)
+                         -> TextureBag where F: Facade
+    {
         let path = match config_path {
             Some(path) => path,
             None => String::from(DEFAULT_CONFIG_PATH),
@@ -78,12 +76,11 @@ impl TextureBag {
         for texture in converted_config.clone() {
             loaded_textures.insert(
                 texture.0,
-                glium::texture::Texture2d::new(display, Texture::from_file(texture.1.as_str()).as_raw_image_2d()).unwrap()
+                glium::texture::Texture2d::new(facade, Texture::from_file(texture.1.as_str()).as_raw_image_2d()).unwrap()
             );
         }
 
         TextureBag {
-            config_path: path,
             config_data: converted_config,
             textures: loaded_textures
         }
@@ -92,7 +89,9 @@ impl TextureBag {
     /// # Panics
     ///
     /// Method will panic if config file is missing or if json format is invalid.
-    pub fn init_lazy(display: &Display, config_path: Option<String>) -> TextureBag {
+    pub fn init_lazy<F>(_facade: &F, config_path: Option<String>)
+        -> TextureBag where F: Facade
+    {
         let path = match config_path {
             Some(path) => path,
             None => String::from(DEFAULT_CONFIG_PATH),
@@ -119,7 +118,6 @@ impl TextureBag {
         }
 
         TextureBag {
-            config_path: path,
             config_data: converted_config,
             textures: HashMap::new(),
         }
@@ -132,13 +130,15 @@ impl TextureBag {
     /// # Panics
     ///
     /// Method will panic if texture file is missing.
-    pub fn get_texture(&mut self, texture_id: String, display: &Display) -> &glium::texture::Texture2d {
+    pub fn get_texture<F>(&mut self, texture_id: String, facade: &F)
+                          -> &glium::texture::Texture2d where F: Facade
+    {
         if self.textures.get(&texture_id).is_none() {
             let texture_path = match self.config_data.get(&texture_id) {
                 Some(path) => path.clone(),
                 None => panic!("Unknown texture_id provided to bag: {}", &texture_id),
             };
-            let loaded_texture = glium::texture::Texture2d::new(display, Texture::from_file(texture_path.as_str()).as_raw_image_2d()).unwrap();
+            let loaded_texture = glium::texture::Texture2d::new(facade, Texture::from_file(texture_path.as_str()).as_raw_image_2d()).unwrap();
             self.textures.insert(
                 texture_id.clone(),
                 loaded_texture
